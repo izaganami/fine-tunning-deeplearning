@@ -63,9 +63,16 @@ headModel = baseModel.output
 ##up to here pretrained resnet model
 
 headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
+#Average Pooling: Calculate the average value for each patch on the feature map.
+#Maximum Pooling (or Max Pooling): Calculate the maximum value for each patch of the feature map.
+#featuremap:
+#Feature map and activation map mean exactly the same thing. It is called an activation map because it is a mapping that corresponds
+# to the activation of different parts of the image, and also a feature map because it is also a mapping of where a certain kind of 
+#feature is found in the image. A high activation means a certain feature was found.
 headModel = Flatten(name="flatten")(headModel)
 headModel = Dense(512, activation="relu")(headModel)
 headModel = Dropout(0.5)(headModel)
+#Softmax is a squashing function that limits the output of the function into the range 0 to 1
 headModel = Dense(len(lb.classes_), activation="softmax")(headModel)
 model = Model(inputs=baseModel.input, outputs=headModel)
 for layer in baseModel.layers:
