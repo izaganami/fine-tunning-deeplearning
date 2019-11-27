@@ -1,0 +1,2 @@
+#do not launch on the second file until finished !
+python main.py --dataset Form-Type-Classifier/data --model output/activity.model --label-bin output/lb.pickle --epochs 50
