@@ -29,7 +29,9 @@ ap.add_argument("-e", "--epochs", type=int, default=25, help="# of epochs to tra
 ap.add_argument("-p", "--plot", type=str, default="plot.png", help="path to output loss/accuracy plot")
 args = vars(ap.parse_args())
 
-LABELS = set(["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F11", "FXX"])
+LABELS = set(["F01", "F02", "F03", "F04", "F07", "F11","F12","F13"])
+
+##LABELS = set(["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F11","F12","F13", "FXX"])
 print("[INFO] loading images...")
 imagePaths = list(paths.list_images(args["dataset"]))
 data = []
@@ -47,7 +49,7 @@ data = np.array(data)
 labels = np.array(labels)
 lb = LabelBinarizer()
 labels = lb.fit_transform(labels)
-(trainX, testX, trainY, testY) = train_test_split(data, labels,test_size=0.25, stratify=labels, random_state=42)
+(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, stratify=labels, random_state=42)
 trainAug = ImageDataGenerator(rotation_range=30, zoom_range=0.15, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15, horizontal_flip=True, fill_mode="nearest")
 valAug = ImageDataGenerator()
 mean = np.array([123.68, 116.779, 103.939], dtype="float32")
@@ -63,16 +65,10 @@ headModel = baseModel.output
 ##up to here pretrained resnet model
 
 headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
-#Average Pooling: Calculate the average value for each patch on the feature map.
-#Maximum Pooling (or Max Pooling): Calculate the maximum value for each patch of the feature map.
-#featuremap:
-#Feature map and activation map mean exactly the same thing. It is called an activation map because it is a mapping that corresponds
-# to the activation of different parts of the image, and also a feature map because it is also a mapping of where a certain kind of 
-#feature is found in the image. A high activation means a certain feature was found.
 headModel = Flatten(name="flatten")(headModel)
 headModel = Dense(512, activation="relu")(headModel)
 headModel = Dropout(0.5)(headModel)
-#Softmax is a squashing function that limits the output of the function into the range 0 to 1
+##might try with tanh(sigmoid)
 headModel = Dense(len(lb.classes_), activation="softmax")(headModel)
 model = Model(inputs=baseModel.input, outputs=headModel)
 for layer in baseModel.layers:
@@ -90,8 +86,9 @@ plt.style.use("ggplot")
 plt.figure()
 plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
 plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
-plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
+##acc changed to accuracy due to version problem
+plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
+plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
 plt.title("Training Loss and Accuracy on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
