@@ -19,6 +19,7 @@ import argparse
 import pickle
 import cv2
 import os
+from sklearn.metrics import f1_score
 
 ##variable for command line
 ap = argparse.ArgumentParser()
@@ -29,7 +30,8 @@ ap.add_argument("-e", "--epochs", type=int, default=25, help="# of epochs to tra
 ap.add_argument("-p", "--plot", type=str, default="plot.png", help="path to output loss/accuracy plot")
 args = vars(ap.parse_args())
 
-LABELS = set(["F01", "F02", "F03", "F04", "F07", "F11","F12","F13"])
+##LABELS = set(["F01", "F02", "F03", "F04", "F07", "F11","F12","F13"])
+LABELS = set(["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F09", "F10", "F11","F12","F13","F15", "F18"])
 
 ##LABELS = set(["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F11","F12","F13", "FXX"])
 print("[INFO] loading images...")
@@ -49,8 +51,10 @@ data = np.array(data)
 labels = np.array(labels)
 lb = LabelBinarizer()
 labels = lb.fit_transform(labels)
-(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, stratify=labels, random_state=42)
-trainAug = ImageDataGenerator(rotation_range=30, zoom_range=0.15, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15, horizontal_flip=True, fill_mode="nearest")
+(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.30, stratify=labels, random_state=42)
+##print("labels",labels)
+print(testY)
+trainAug = ImageDataGenerator(rotation_range=0, zoom_range=0.05, width_shift_range=0.02, height_shift_range=0.02, shear_range=0.005, horizontal_flip=True, fill_mode="nearest")
 valAug = ImageDataGenerator()
 mean = np.array([123.68, 116.779, 103.939], dtype="float32")
 trainAug.mean = mean
@@ -68,25 +72,25 @@ headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
 headModel = Flatten(name="flatten")(headModel)
 headModel = Dense(512, activation="relu")(headModel)
 headModel = Dropout(0.5)(headModel)
-##might try with tanh(sigmoid)
 headModel = Dense(len(lb.classes_), activation="softmax")(headModel)
 model = Model(inputs=baseModel.input, outputs=headModel)
 for layer in baseModel.layers:
     layer.trainable = False #to try with both possibilities just to compare !
 print("[INFO] compiling model...")
 opt = SGD(lr=1e-4, momentum=0.9, decay=1e-4 / args["epochs"])
-model.compile(loss="categorical_crossentropy", optimizer=opt,metrics=["accuracy"])
+model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+
 print("[INFO] training head...")
 H = model.fit_generator(trainAug.flow(trainX, trainY, batch_size=32),steps_per_epoch=len(trainX) // 32,validation_data=valAug.flow(testX, testY),validation_steps=len(testX) // 32, epochs=args["epochs"])
 print("[INFO] evaluating network...")
 predictions = model.predict(testX, batch_size=32)
+
 print(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=lb.classes_))
 N = args["epochs"]
 plt.style.use("ggplot")
 plt.figure()
 plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
 plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-##acc changed to accuracy due to version problem
 plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
 plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
 plt.title("Training Loss and Accuracy on Dataset")
@@ -99,6 +103,7 @@ model.save(args["model"])
 f = open(args["label_bin"], "wb")
 f.write(pickle.dumps(lb))
 f.close()
+
 
 
 

@@ -1,2 +1,10 @@
 #do not launch on the second file until finished !
 python main.py --dataset Form-Type-Classifier/data --model output/activity.model --label-bin output/lb.pickle --epochs 50
+
+
+##to launch
+$ python predict_video.py --model model/activity.model \
+	--label-bin model/lb.pickle \
+	--input video.mp4 \
+	--output output/results.avi \
+	--size 128
