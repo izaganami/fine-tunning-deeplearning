@@ -4,6 +4,8 @@ import numpy as np
 import argparse
 import pickle
 import cv2
+import matplotlib.pyplot as plt
+
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-m", "--model", required=True, help="path to trained serialized model")
@@ -13,7 +15,9 @@ ap.add_argument("-o", "--output", required=True, help="path to our output video"
 ap.add_argument("-s", "--size", type=int, default=128, help="size of queue for averaging")
 args = vars(ap.parse_args())
 
-
+LABELS = ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F09", "F10", "F11","F12","F13","F15", "F18"]
+A=[[0] for i in range(len(LABELS))]
+print(A);
 print("[INFO] loading model and label binarizer...")
 model = load_model(args["model"])
 lb = pickle.loads(open(args["label_bin"], "rb").read())
@@ -38,13 +42,12 @@ while True:
 	preds = model.predict(np.expand_dims(frame, axis=0))[0]
 	Q.append(preds)
 	##show predictions
-	print("Queue", Q)
-	print("preds", preds)
-
+	for i in range(len(preds)):
+		A[i].append(preds[i])
 	results = np.array(Q).mean(axis=0)
 	i = np.argmax(results)
 	label = lb.classes_[i]
-	text = "activity: {}".format(label)
+	text = "Config: {}".format(label)
 	cv2.putText(output, text, (35, 50), cv2.FONT_HERSHEY_SIMPLEX,
 		1.25, (0, 255, 0), 5)
 	if writer is None:
@@ -59,6 +62,32 @@ while True:
 		break
 
 print("[INFO] cleaning up...")
+j=0
+for k in range(len(A[0])//100):
+	plt.style.use("ggplot")
+	plt.figure()
+
+	for i in range(len(A)):
+		plt.plot(np.arange(100*k, (100*k)+100), A[i][100*k:(100*k)+100], label=LABELS[i])
+
+	plt.title("Probs for each configuration")
+	plt.xlabel("frame de: "+str(100*k) +" a: "+str((100*k)+100))
+	plt.ylabel("prob")
+	plt.legend(loc="lower left")
+	plt.savefig("plot"+str(k)+".png")
+	j=k
+
+
+plt.style.use("ggplot")
+plt.figure()
+for i in range(len(A)):
+	plt.plot(np.arange(100 * j, len(A[i])), A[i][100 * k:len(A[i])], label=LABELS[i])
+plt.title("Probs for each configuration")
+plt.xlabel("frame de: "+ str(100*j) +" jusqu a la fin")
+plt.ylabel("prob")
+plt.legend(loc="lower left")
+plt.savefig("plot"+str(j)+".png")
+
 writer.release()
 vs.release()
 
